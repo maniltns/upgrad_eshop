@@ -78,7 +78,7 @@ function App() {
             }
           />
           <Route
-            path="/orders/new"
+            path="/order"
             element={
               <ProtectedRoute>
                 <CreateOrder />

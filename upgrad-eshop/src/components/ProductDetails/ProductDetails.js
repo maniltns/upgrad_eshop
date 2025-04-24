@@ -45,7 +45,7 @@ const ProductDetails = () => {
   };
 
   const handlePlaceOrder = () => {
-    navigate('/orders/new', {
+    navigate('/order', {
       state: {
         productId: product.id,
         quantity: quantity,

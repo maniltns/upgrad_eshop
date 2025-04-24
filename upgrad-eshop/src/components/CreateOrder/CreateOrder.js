@@ -4,20 +4,22 @@ import {
   Container,
   Paper,
   Typography,
+  Button,
+  Box,
   Stepper,
   Step,
   StepLabel,
-  Button,
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Grid,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+  Divider,
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { api } from '../../common/api';
+import { formatPrice } from '../../common/utils';
 
 const steps = ['Summary', 'Address', 'Confirm Order'];
 
@@ -25,39 +27,39 @@ const CreateOrder = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
-  const [product, setProduct] = useState(null);
-  const [quantity, setQuantity] = useState(1);
   const [addresses, setAddresses] = useState([]);
-  const [selectedAddress, setSelectedAddress] = useState('');
-  const [newAddress, setNewAddress] = useState({
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
-  });
-  const [errors, setErrors] = useState({});
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [orderDetails, setOrderDetails] = useState(null);
 
   useEffect(() => {
-    if (location.state) {
-      setProduct(location.state.product);
-      setQuantity(location.state.quantity);
+    // Load addresses from localStorage
+    const savedAddresses = JSON.parse(localStorage.getItem('userAddresses') || '[]');
+    setAddresses(savedAddresses);
+
+    // Get order details from location state
+    if (location.state?.productId && location.state?.quantity) {
+      const fetchProductDetails = async () => {
+        try {
+          const product = await api.getProductById(location.state.productId);
+          setOrderDetails({
+            product,
+            quantity: location.state.quantity,
+            total: product.price * location.state.quantity
+          });
+        } catch (error) {
+          toast.error('Failed to fetch product details');
+          navigate('/products');
+        }
+      };
+      fetchProductDetails();
     } else {
       navigate('/products');
     }
-    fetchAddresses();
   }, [location.state, navigate]);
 
-  const fetchAddresses = async () => {
-    try {
-      const data = await api.getAddresses();
-      setAddresses(data);
-    } catch (error) {
-      toast.error('Failed to fetch addresses');
-    }
-  };
-
   const handleNext = () => {
-    if (activeStep === 1 && !selectedAddress && !validateNewAddress()) {
+    if (activeStep === 1 && !selectedAddress) {
+      toast.error('Please select an address');
       return;
     }
     setActiveStep((prevStep) => prevStep + 1);
@@ -67,191 +69,138 @@ const CreateOrder = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  const validateNewAddress = () => {
-    const newErrors = {};
-    if (!newAddress.street) newErrors.street = 'Street is required';
-    if (!newAddress.city) newErrors.city = 'City is required';
-    if (!newAddress.state) newErrors.state = 'State is required';
-    if (!newAddress.zipCode) newErrors.zipCode = 'Zip code is required';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleAddressChange = (e) => {
-    setSelectedAddress(e.target.value);
-  };
-
-  const handleNewAddressChange = (e) => {
-    const { name, value } = e.target;
-    setNewAddress((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
-
-  const handleAddNewAddress = async () => {
-    if (!validateNewAddress()) return;
-
-    try {
-      const address = await api.addAddress(newAddress);
-      setAddresses([...addresses, address]);
-      setSelectedAddress(address.id);
-      toast.success('New address added successfully');
-    } catch (error) {
-      toast.error('Failed to add new address');
-    }
-  };
-
   const handlePlaceOrder = async () => {
+    if (!selectedAddress || !orderDetails) {
+      toast.error('Missing order information');
+      return;
+    }
+
     try {
-      const orderData = {
-        productId: product.id,
-        quantity: quantity,
-        addressId: selectedAddress,
-      };
-      await api.createOrder(orderData);
+      await api.createOrder({
+        productId: orderDetails.product.id,
+        quantity: orderDetails.quantity,
+        addressId: selectedAddress.id
+      });
       toast.success('Order placed successfully!');
       navigate('/products');
     } catch (error) {
-      toast.error('Failed to place order');
+      toast.error(error.message || 'Failed to place order');
     }
   };
 
-  const getStepContent = (step) => {
+  const renderStepContent = (step) => {
     switch (step) {
       case 0:
         return (
-          <Box sx={{ mt: 2 }}>
+          <Box>
             <Typography variant="h6" gutterBottom>
               Order Summary
             </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography>
-                  Product: {product?.name}
-                </Typography>
-                <Typography>
-                  Quantity: {quantity}
-                </Typography>
-                <Typography>
-                  Total: ${(product?.price * quantity).toFixed(2)}
-                </Typography>
-              </Grid>
-            </Grid>
+            {orderDetails && (
+              <>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle1">
+                      Product: {orderDetails.product.name}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="body1">
+                      Price: {formatPrice(orderDetails.product.price)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="body1">
+                      Quantity: {orderDetails.quantity}
+                    </Typography>
+                  </Grid>
+                  <Divider sx={{ width: '100%', my: 2 }} />
+                  <Grid item xs={12}>
+                    <Typography variant="h6">
+                      Total: {formatPrice(orderDetails.total)}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </>
+            )}
           </Box>
         );
 
       case 1:
         return (
-          <Box sx={{ mt: 2 }}>
+          <Box>
             <Typography variant="h6" gutterBottom>
-              Shipping Address
+              Select Delivery Address
             </Typography>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Select Address</InputLabel>
-              <Select
-                value={selectedAddress}
-                onChange={handleAddressChange}
-                label="Select Address"
-              >
-                {addresses.map((address) => (
-                  <MenuItem key={address.id} value={address.id}>
-                    {`${address.street}, ${address.city}, ${address.state} ${address.zipCode}`}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
-              Add New Address
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Street"
-                  name="street"
-                  value={newAddress.street}
-                  onChange={handleNewAddressChange}
-                  error={!!errors.street}
-                  helperText={errors.street}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="City"
-                  name="city"
-                  value={newAddress.city}
-                  onChange={handleNewAddressChange}
-                  error={!!errors.city}
-                  helperText={errors.city}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="State"
-                  name="state"
-                  value={newAddress.state}
-                  onChange={handleNewAddressChange}
-                  error={!!errors.state}
-                  helperText={errors.state}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Zip Code"
-                  name="zipCode"
-                  value={newAddress.zipCode}
-                  onChange={handleNewAddressChange}
-                  error={!!errors.zipCode}
-                  helperText={errors.zipCode}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAddNewAddress}
+            {addresses.length === 0 ? (
+              <Typography color="error">
+                No addresses found. Please add an address in your profile.
+              </Typography>
+            ) : (
+              <FormControl component="fieldset">
+                <FormLabel component="legend">Saved Addresses</FormLabel>
+                <RadioGroup
+                  value={selectedAddress ? JSON.stringify(selectedAddress) : ''}
+                  onChange={(e) => setSelectedAddress(JSON.parse(e.target.value))}
                 >
-                  Add New Address
-                </Button>
-              </Grid>
-            </Grid>
+                  {addresses.map((address, index) => (
+                    <FormControlLabel
+                      key={index}
+                      value={JSON.stringify(address)}
+                      control={<Radio />}
+                      label={
+                        <Box>
+                          <Typography variant="subtitle1">{address.name}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {`${address.street}, ${address.city}, ${address.state} - ${address.zipCode}`}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Phone: {address.phone}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  ))}
+                </RadioGroup>
+              </FormControl>
+            )}
           </Box>
         );
 
       case 2:
         return (
-          <Box sx={{ mt: 2 }}>
+          <Box>
             <Typography variant="h6" gutterBottom>
-              Confirm Order
+              Order Confirmation
             </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography>
-                  Product: {product?.name}
+            {orderDetails && selectedAddress && (
+              <>
+                <Typography variant="subtitle1" gutterBottom>
+                  Product Details
                 </Typography>
-                <Typography>
-                  Quantity: {quantity}
+                <Typography variant="body1">
+                  {orderDetails.product.name} x {orderDetails.quantity}
                 </Typography>
-                <Typography>
-                  Total: ${(product?.price * quantity).toFixed(2)}
+                <Typography variant="body1" gutterBottom>
+                  Total: {formatPrice(orderDetails.total)}
                 </Typography>
-                <Typography>
-                  Shipping Address:{' '}
-                  {addresses.find((a) => a.id === selectedAddress)?.street}
+
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="subtitle1" gutterBottom>
+                  Delivery Address
                 </Typography>
-              </Grid>
-            </Grid>
+                <Typography variant="body1">
+                  {selectedAddress.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {`${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.zipCode}`}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Phone: {selectedAddress.phone}
+                </Typography>
+              </>
+            )}
           </Box>
         );
 
@@ -260,12 +209,17 @@ const CreateOrder = () => {
     }
   };
 
+  if (!orderDetails) {
+    return null;
+  }
+
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom align="center">
           Create Order
         </Typography>
+
         <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
           {steps.map((label) => (
             <Step key={label}>
@@ -273,31 +227,24 @@ const CreateOrder = () => {
             </Step>
           ))}
         </Stepper>
-        {getStepContent(activeStep)}
+
+        {renderStepContent(activeStep)}
+
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
           <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
+            variant="outlined"
+            onClick={activeStep === 0 ? () => navigate('/products') : handleBack}
           >
-            Back
+            {activeStep === 0 ? 'Cancel' : 'Back'}
           </Button>
-          {activeStep === steps.length - 1 ? (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handlePlaceOrder}
-            >
-              Place Order
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleNext}
-            >
-              Next
-            </Button>
-          )}
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={activeStep === steps.length - 1 ? handlePlaceOrder : handleNext}
+            disabled={activeStep === 1 && addresses.length === 0}
+          >
+            {activeStep === steps.length - 1 ? 'Place Order' : 'Next'}
+          </Button>
         </Box>
       </Paper>
     </Container>

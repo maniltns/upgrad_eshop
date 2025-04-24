@@ -9,225 +9,219 @@ import {
   Typography,
   Button,
   Box,
-  ToggleButton,
-  ToggleButtonGroup,
-  Menu,
+  FormControl,
+  InputLabel,
+  Select,
   MenuItem,
+  TextField,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  CardActions,
 } from '@mui/material';
-import { Edit, Delete } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { api } from '../../common/api';
 import { getIsAdmin } from '../../common/auth';
+import { formatPrice, PRODUCT_CATEGORIES } from '../../common/utils';
 
 const Products = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortAnchorEl, setSortAnchorEl] = useState(null);
-  const [sortBy, setSortBy] = useState('default');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const searchParams = new URLSearchParams(location.search);
+  const searchQuery = searchParams.get('search');
+  const [searchText, setSearchText] = useState(searchQuery || '');
+  const isAdmin = getIsAdmin();
 
   useEffect(() => {
-    fetchCategories();
     fetchProducts();
   }, []);
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const searchQuery = searchParams.get('search');
-    if (searchQuery) {
-      fetchProducts({ name: searchQuery });
-    }
-  }, [location.search]);
+    filterAndSortProducts();
+  }, [products, selectedCategory, sortBy, searchText]);
 
-  const fetchCategories = async () => {
+  const fetchProducts = async () => {
     try {
-      const data = await api.getCategories();
-      setCategories(data);
-    } catch (error) {
-      toast.error('Failed to fetch categories');
-    }
-  };
-
-  const fetchProducts = async (params = {}) => {
-    try {
-      const data = await api.getProducts(params);
+      const data = await api.getProducts();
       setProducts(data);
     } catch (error) {
       toast.error('Failed to fetch products');
     }
   };
 
-  const handleCategoryChange = (event, newCategory) => {
-    if (newCategory !== null) {
-      setSelectedCategory(newCategory);
-      fetchProducts(newCategory === 'all' ? {} : { category: newCategory });
+  const filterAndSortProducts = () => {
+    let filtered = [...products];
+
+    // Apply category filter
+    if (selectedCategory) {
+      filtered = filtered.filter(product => product.category === selectedCategory);
+    }
+
+    // Apply search filter
+    if (searchText) {
+      const searchLower = searchText.toLowerCase();
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchLower) ||
+        product.description.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply sorting
+    if (sortBy === 'priceLowToHigh') {
+      filtered.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'priceHighToLow') {
+      filtered.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'newest') {
+      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    setFilteredProducts(filtered);
+  };
+
+  const handleCategoryChange = (event) => {
+    setSelectedCategory(event.target.value);
+  };
+
+  const handleSortChange = (event) => {
+    setSortBy(event.target.value);
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchText(event.target.value);
+    if (!event.target.value) {
+      navigate('/products');
     }
   };
 
-  const handleSortClick = (event) => {
-    setSortAnchorEl(event.currentTarget);
+  const handleProductClick = (productId) => {
+    navigate(`/products/${productId}`);
   };
 
-  const handleSortClose = () => {
-    setSortAnchorEl(null);
+  const handleEditProduct = (event, productId) => {
+    event.stopPropagation();
+    navigate(`/admin/edit/${productId}`);
   };
 
-  const handleSortSelect = (sortType) => {
-    setSortBy(sortType);
-    handleSortClose();
-
-    let sortedProducts = [...products];
-    switch (sortType) {
-      case 'price-high-low':
-        sortedProducts.sort((a, b) => b.price - a.price);
-        break;
-      case 'price-low-high':
-        sortedProducts.sort((a, b) => a.price - b.price);
-        break;
-      case 'newest':
-        sortedProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
-      default:
-        // Default API order
+  const handleDeleteProduct = async (event, productId) => {
+    event.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        await api.deleteProduct(productId);
+        toast.success('Product deleted successfully');
         fetchProducts();
-        return;
+      } catch (error) {
+        toast.error('Failed to delete product');
+      }
     }
-    setProducts(sortedProducts);
-  };
-
-  const handleDeleteClick = (product) => {
-    setProductToDelete(product);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    try {
-      await api.deleteProduct(productToDelete.id);
-      toast.success(`Product ${productToDelete.name} deleted successfully`);
-      setProducts(products.filter(p => p.id !== productToDelete.id));
-    } catch (error) {
-      toast.error('Failed to delete product');
-    }
-    setDeleteDialogOpen(false);
-    setProductToDelete(null);
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setProductToDelete(null);
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ mb: 4 }}>
-        <ToggleButtonGroup
-          value={selectedCategory}
-          exclusive
-          onChange={handleCategoryChange}
-          aria-label="product categories"
-        >
-          <ToggleButton value="all">All</ToggleButton>
-          {categories.map((category) => (
-            <ToggleButton key={category} value={category}>
-              {category}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-
-        <Button
-          onClick={handleSortClick}
-          sx={{ ml: 2 }}
-        >
-          Sort by: {sortBy}
-        </Button>
-        <Menu
-          anchorEl={sortAnchorEl}
-          open={Boolean(sortAnchorEl)}
-          onClose={handleSortClose}
-        >
-          <MenuItem onClick={() => handleSortSelect('default')}>Default</MenuItem>
-          <MenuItem onClick={() => handleSortSelect('price-high-low')}>Price High to Low</MenuItem>
-          <MenuItem onClick={() => handleSortSelect('price-low-high')}>Price Low to High</MenuItem>
-          <MenuItem onClick={() => handleSortSelect('newest')}>Newest</MenuItem>
-        </Menu>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="Search Products"
+              value={searchText}
+              onChange={handleSearchChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={selectedCategory}
+                label="Category"
+                onChange={handleCategoryChange}
+              >
+                <MenuItem value="">All Categories</MenuItem>
+                {PRODUCT_CATEGORIES.map((category) => (
+                  <MenuItem key={category} value={category}>
+                    {category}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <InputLabel>Sort By</InputLabel>
+              <Select
+                value={sortBy}
+                label="Sort By"
+                onChange={handleSortChange}
+              >
+                <MenuItem value="">None</MenuItem>
+                <MenuItem value="priceLowToHigh">Price: Low to High</MenuItem>
+                <MenuItem value="priceHighToLow">Price: High to Low</MenuItem>
+                <MenuItem value="newest">Newest First</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
       </Box>
 
       <Grid container spacing={3}>
-        {products.map((product) => (
-          <Grid item xs={12} sm={6} md={4} key={product.id}>
-            <Card>
+        {filteredProducts.map((product) => (
+          <Grid item key={product.id} xs={12} sm={6} md={4}>
+            <Card 
+              sx={{ 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                cursor: 'pointer',
+                '&:hover': {
+                  boxShadow: 6,
+                },
+              }}
+              onClick={() => handleProductClick(product.id)}
+            >
               <CardMedia
                 component="img"
                 height="200"
                 image={product.image}
                 alt={product.name}
+                sx={{ objectFit: 'contain', p: 2 }}
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = 'https://via.placeholder.com/200x200?text=Image+not+available';
                 }}
               />
-              <CardContent>
-                <Typography gutterBottom variant="h6" component="div">
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography gutterBottom variant="h6" component="h2">
                   {product.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  ${product.price}
+                <Typography variant="h6" color="primary" gutterBottom>
+                  {formatPrice(product.price)}
                 </Typography>
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate(`/products/${product.id}`)}
-                  >
-                    Buy
-                  </Button>
-                  {getIsAdmin() && (
-                    <Box>
-                      <IconButton
-                        onClick={() => navigate(`/admin/edit/${product.id}`)}
-                        color="primary"
-                      >
-                        <Edit />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => handleDeleteClick(product)}
-                        color="error"
-                      >
-                        <Delete />
-                      </IconButton>
-                    </Box>
-                  )}
-                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  {product.description}
+                </Typography>
               </CardContent>
+              {isAdmin && (
+                <CardActions sx={{ justifyContent: 'flex-end' }}>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleEditProduct(e, product.id)}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleDeleteProduct(e, product.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </CardActions>
+              )}
             </Card>
           </Grid>
         ))}
       </Grid>
-
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-      >
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          Are you sure you want to delete {productToDelete?.name}?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Container>
   );
 };
