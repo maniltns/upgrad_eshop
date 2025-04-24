@@ -7,7 +7,6 @@ import {
   Button,
   IconButton,
   InputBase,
-  Box,
   Menu,
   MenuItem,
 } from '@mui/material';
