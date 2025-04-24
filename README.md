@@ -38,8 +38,8 @@ cd upgrad-eshop
 npm install
 ```
 
-3. Create a `.env` file in the root directory:
-```bash
+3. Create a `.env` file in the root directory with the following content:
+```
 REACT_APP_API_URL=https://dev-project-ecommerce.upgrad.dev/api
 ```
 
@@ -63,20 +63,20 @@ upgrad-eshop/
 │   └── manifest.json
 ├── src/
 │   ├── assets/
-│   │   ├── common/
-│   │   │   ├── auth.js
-│   │   │   ├── api.js
-│   │   │   └── utils.js
-│   │   ├── components/
-│   │   │   ├── Login/
-│   │   │   ├── Signup/
-│   │   │   ├── Products/
-│   │   │   ├── ProductDetails/
-│   │   │   ├── CreateOrder/
-│   │   │   └── Admin/
-│   │   ├── App.js
-│   │   └── index.js
-│   └── package.json
+│   ├── common/
+│   │   ├── auth.js
+│   │   ├── api.js
+│   │   └── utils.js
+│   ├── components/
+│   │   ├── Login/
+│   │   ├── Signup/
+│   │   ├── Products/
+│   │   ├── ProductDetails/
+│   │   ├── CreateOrder/
+│   │   └── Admin/
+│   ├── App.js
+│   └── index.js
+└── package.json
 ```
 
 ## Available Scripts
@@ -88,7 +88,7 @@ upgrad-eshop/
 
 ## Environment Variables
 
-- `REACT_APP_API_URL` - Backend API URL
+- `REACT_APP_API_URL` - Backend API URL (required)
 
 ## API Documentation
 
