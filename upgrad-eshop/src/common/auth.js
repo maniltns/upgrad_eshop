@@ -22,6 +22,18 @@ export const removeIsAdmin = () => {
   localStorage.removeItem('isAdmin');
 };
 
+export const setUserName = (name) => {
+  localStorage.setItem('userName', name);
+};
+
+export const getUserName = () => {
+  return localStorage.getItem('userName');
+};
+
+export const removeUserName = () => {
+  localStorage.removeItem('userName');
+};
+
 export const isAuthenticated = () => {
   return !!getAuthToken();
 };
@@ -29,6 +41,7 @@ export const isAuthenticated = () => {
 export const logout = () => {
   removeAuthToken();
   removeIsAdmin();
+  removeUserName();
 };
 
 export const getAuthHeader = () => {

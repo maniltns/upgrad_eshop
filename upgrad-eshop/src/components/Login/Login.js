@@ -8,11 +8,13 @@ import {
   Button,
   Box,
   Link,
+  Alert,
+  Divider,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api } from '../../common/api';
-import { setAuthToken, setIsAdmin } from '../../common/auth';
+import { setAuthToken, setIsAdmin, setUserName } from '../../common/auth';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -42,7 +44,6 @@ const Login = () => {
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -59,11 +60,19 @@ const Login = () => {
       const response = await api.login(formData);
       setAuthToken(response.token);
       setIsAdmin(response.isAdmin);
+      setUserName(response.name);
       toast.success('Login successful!');
       navigate('/products');
     } catch (error) {
       toast.error(error.message || 'Login failed');
     }
+  };
+
+  const setTestCredentials = (isAdmin) => {
+    setFormData({
+      email: isAdmin ? 'admin@test.com' : 'user@test.com',
+      password: isAdmin ? 'admin123' : 'user123',
+    });
   };
 
   return (
@@ -73,6 +82,37 @@ const Login = () => {
           <Typography variant="h4" component="h1" gutterBottom align="center">
             Login
           </Typography>
+          
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              Test Credentials:
+              <Box component="ul" sx={{ mt: 1, mb: 0 }}>
+                <li>Admin - Email: admin@test.com / Password: admin123</li>
+                <li>User - Email: user@test.com / Password: user123</li>
+              </Box>
+            </Typography>
+          </Alert>
+
+          <Box sx={{ mb: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setTestCredentials(true)}
+              sx={{ mb: 1 }}
+            >
+              Use Admin Credentials
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setTestCredentials(false)}
+            >
+              Use User Credentials
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 3 }}>OR</Divider>
+
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth

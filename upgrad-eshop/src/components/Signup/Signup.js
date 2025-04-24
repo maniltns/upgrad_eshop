@@ -8,11 +8,12 @@ import {
   Button,
   Box,
   Link,
+  Alert,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api } from '../../common/api';
-import { setAuthToken, setIsAdmin } from '../../common/auth';
+import { setAuthToken, setIsAdmin, setUserName } from '../../common/auth';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -54,7 +55,6 @@ const Signup = () => {
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -75,6 +75,7 @@ const Signup = () => {
       });
       setAuthToken(response.token);
       setIsAdmin(response.isAdmin);
+      setUserName(response.name);
       toast.success('Signup successful!');
       navigate('/products');
     } catch (error) {
@@ -89,6 +90,13 @@ const Signup = () => {
           <Typography variant="h4" component="h1" gutterBottom align="center">
             Sign Up
           </Typography>
+
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              Create a new account to start shopping! All new accounts are created as regular users.
+            </Typography>
+          </Alert>
+
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
