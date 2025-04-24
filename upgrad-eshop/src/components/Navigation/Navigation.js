@@ -139,7 +139,19 @@ const Navigation = () => {
               open={Boolean(anchorEl)}
               onClose={handleClose}
             >
-              <MenuItem onClick={handleLogout}>Logout</MenuItem>
+              <MenuItem 
+                component={RouterLink} 
+                to="/profile"
+                onClick={handleClose}
+              >
+                Profile
+              </MenuItem>
+              <MenuItem onClick={() => {
+                handleClose();
+                handleLogout();
+              }}>
+                Logout
+              </MenuItem>
             </Menu>
           </>
         ) : (

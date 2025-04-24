@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { api } from '../../common/api';
+import { formatPrice } from '../../common/utils';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -89,7 +90,7 @@ const ProductDetails = () => {
               {product.name}
             </Typography>
             <Typography variant="h5" color="primary" gutterBottom>
-              ${product.price}
+              {formatPrice(product.price)}
             </Typography>
             <Typography variant="body1" paragraph>
               {product.description}

@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { api } from '../../common/api';
+import { PRODUCT_CATEGORIES } from '../../common/utils';
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -130,11 +131,11 @@ const AddProduct = () => {
                   label="Category"
                   required
                 >
-                  <MenuItem value="Electronics">Electronics</MenuItem>
-                  <MenuItem value="Clothing">Clothing</MenuItem>
-                  <MenuItem value="Books">Books</MenuItem>
-                  <MenuItem value="Home">Home</MenuItem>
-                  <MenuItem value="Sports">Sports</MenuItem>
+                  {PRODUCT_CATEGORIES.map((category) => (
+                    <MenuItem key={category} value={category}>
+                      {category}
+                    </MenuItem>
+                  ))}
                 </Select>
                 {errors.category && (
                   <Typography color="error" variant="caption">

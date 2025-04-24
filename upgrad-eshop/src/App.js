@@ -14,6 +14,7 @@ import CreateOrder from './components/CreateOrder/CreateOrder';
 import AddProduct from './components/Admin/AddProduct';
 import EditProduct from './components/Admin/EditProduct';
 import Navigation from './components/Navigation/Navigation';
+import UserProfile from './components/UserProfile/UserProfile';
 
 // Import auth utilities
 import { isAuthenticated, getIsAdmin } from './common/auth';
@@ -52,6 +53,14 @@ function App() {
           <Route path="/signup" element={<Signup />} />
 
           {/* Protected routes */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <UserProfile />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/products"
             element={
