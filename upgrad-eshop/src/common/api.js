@@ -110,15 +110,25 @@ export const api = {
 
   // Order endpoints
   createOrder: async (orderData) => {
-    const response = await fetch(`${API_BASE_URL}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(orderData),
-    });
-    return handleResponse(response);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Get stored orders or initialize empty array
+    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    
+    // Create new order
+    const newOrder = {
+      id: Date.now().toString(),
+      ...orderData,
+      status: 'CONFIRMED',
+      createdAt: new Date().toISOString()
+    };
+    
+    // Add to orders array
+    orders.push(newOrder);
+    localStorage.setItem('orders', JSON.stringify(orders));
+    
+    return newOrder;
   },
 
   // Address endpoints
