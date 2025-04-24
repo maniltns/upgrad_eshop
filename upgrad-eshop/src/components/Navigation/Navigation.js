@@ -11,11 +11,11 @@ import {
   Menu,
   MenuItem,
 } from '@mui/material';
-import { ShoppingCart, Search } from '@mui/icons-material';
+import { ShoppingCart, Search as SearchIcon } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import { isAuthenticated, getIsAdmin, logout } from '../../common/auth';
 
-const Search = styled('div')(({ theme }) => ({
+const SearchContainer = styled('div')(({ theme }) => ({
   position: 'relative',
   borderRadius: theme.shape.borderRadius,
   backgroundColor: alpha(theme.palette.common.white, 0.15),
@@ -107,9 +107,9 @@ const Navigation = () => {
 
         {isAuthenticated() ? (
           <>
-            <Search>
+            <SearchContainer>
               <SearchIconWrapper>
-                <Search />
+                <SearchIcon />
               </SearchIconWrapper>
               <StyledInputBase
                 placeholder="Search products..."
@@ -117,7 +117,7 @@ const Navigation = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleSearch}
               />
-            </Search>
+            </SearchContainer>
 
             {getIsAdmin() && (
               <Button
